@@ -1,2 +1,1 @@
-# campus_backend
-Campus Backend
+# CampuApi_CI

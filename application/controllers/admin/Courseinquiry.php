@@ -251,7 +251,7 @@ class Courseinquiry extends CI_Controller
       $url = "https://api.sendinblue.com/v3/smtp/email";
 
       $headers = [
-        "api-key: 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",
+        // "api-key: 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",
         "Content-Type: application/json",
       ];
       $custJsonData = [

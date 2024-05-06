@@ -39,7 +39,7 @@ class Auth_model extends CI_Model
 			return null; 
 		}
 	
-		$this->db->select('u.*, s.name as status, t.name as type');
+		$this->db->select('u.id as userId,u.f_name as firstname,u.l_name as lastname,u.user_type,u.email as email,u.create_date,u.image, s.name as status, t.name as type');
 		$this->db->from('users u');
 		$this->db->join('user_type t', 't.id = u.user_type', 'left');
 		$this->db->join('user_status s', 's.id = u.user_status', 'left');

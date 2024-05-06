@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Authentication Controller
  *
@@ -16,7 +17,7 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 class Authentication extends CI_Controller{
 
     /**
-     * Constructor.
+     * Constructor
      * 
      * Loads necessary libraries, helpers, and models for the Authentication controller.
      */
@@ -25,7 +26,7 @@ class Authentication extends CI_Controller{
         
         $this->load->library('session');
         $this->load->helper('url');
-        $this->load->model('admin/auth_model', '', TRUE);
+        $this->load->model('admin/Auth_model', '', TRUE);
     }
 
     /**
@@ -49,17 +50,45 @@ class Authentication extends CI_Controller{
 			$username = $data->username;
 			$password = md5($data->password);
 
-			$result = $this->auth_model->verifyUser($username, $password);
+			$result = $this->Auth_model->verifyUser($username, $password);
+			// print_r($result);exit;
 			if($result)
 			{
-				$response['response_code'] = '200';
-				$response['response_message'] = 'Success';
-				$response['response_data'] = $result;
+				
+				if ( strtolower($result['status']) !== 'active') 
+				{
+					$response['response_code'] = '300';
+					$response['response_message'] = 'Your account is not active. Please contact administrator.';
+				}
+				else if (strtolower($result['type']) != 'contentmanager' && strtolower($result['type']) != 'college' && strtolower($result['type']) != 'contentwriter' && strtolower($result['type']) !== 'admin' && strtolower($result['type']) !== 'Support' && strtolower($result['type']) !== 'employee') 
+				{
+					
+					$response['response_code'] = '300';
+					$response['response_message'] = 'Sorry, you dont have rights to access the admin panel.';
+				}
+				else
+				{
+					$kunci = $this->config->item('jwt_key');
+					$token['id'] = $result["userId"];  //From here
+					$token['data'] = $result;
+					$date1 = new DateTime();
+					$token['iat'] = $date1->getTimestamp();
+					$token['exp'] = $date1->getTimestamp() + 60 * 15000; //To here is to generate token
+					$outputData['token'] = JWT::encode($token, $kunci); //This is the output token
+					$outputData['time'] = $date1->getTimestamp();
+					$outputData["user"] = $token['data'];
+	
+					$response['response_code'] = '1';
+					$response['response_message'] = 'Success';
+					$response['response_data'] = $outputData;
+					// $response['user_data'] = $result;
+
+				}
 			}
 			else
 			{
 				$response['response_code'] = '400';
-				$response['response_message'] = 'Failed';
+				$response['response_message'] = 'Invalid username or password';
 			}
 		}
 		else
@@ -71,4 +100,43 @@ class Authentication extends CI_Controller{
 		echo json_encode($response);exit;
 
     }
+
+	public function refresh_access_token(){
+
+		if ($this->input->server('REQUEST_METHOD') == 'OPTIONS')
+		{
+			$data["status"] = "ok";
+			echo json_encode($data);
+			exit;
+		}
+
+		$headers = apache_request_headers();
+	    try{
+		$token_str = str_replace("Bearer ", "", $headers['Authorization']);
+		$kunci = $this->config->item('jwt_key');
+		$token = JWT::decode($token_str, $kunci);
+
+		$token = json_decode(json_encode($token), true);
+		
+		$date1 = new DateTime();
+		$token['iat'] = $date1->getTimestamp();
+		$token['exp'] = $date1->getTimestamp() + 60 *  2000; //To here is to generate token
+		$outputData['token'] = JWT::encode($token, $kunci); //This is the output token
+		$outputData["user"] = $token['data'];
+
+		$response['response_code']=1;
+		$response['response_message']='Success';
+		$response['response_data']=$outputData;
+
+		
+		}catch(Exception $e){
+
+			$response['response_code']=1;
+			$response['response_message']='Failed';
+			$response['response_data']="Unautherised Token";
+		}
+		echo json_encode($response);exit;  
+		
+
+	}
 }
